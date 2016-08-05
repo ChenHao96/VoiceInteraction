@@ -16,7 +16,7 @@ const (
 	EXPIRED_TOKEN = &Credentials_ResponseErr{error:"expired_token",error_description:"refresh token has been used",description:"提供的Refresh Token已过期"}
 	REDIRECT_URI_MISMATCH = &Credentials_ResponseErr{error:"redirect_uri_mismatch",error_description:"Invalid redirect uri",description:"“redirect_uri”所在的根域与开发者注册应用时所填写的根域名不匹配。"}
 	UNSUPPORTED_RESPONSE_TYPE = &Credentials_ResponseErr{error:"unsupported_response_type",error_description:"The response type is not supported",description:"“response_type”参数值不为百度OAuth2.0服务所支持，或者应用已经主动禁用了对应的授权模式"}
-	SLOW_DOWN = &Credentials_ResponseErr{error:"slow_down",error_description:"	The device is polling too frequently",description:"Device Flow中，设备通过Device Code换取Access Token的接口过于频繁，两次尝试的间隔应大于5秒。"}
+	SLOW_DOWN = &Credentials_ResponseErr{error:"slow_down",error_description:"The device is polling too frequently",description:"Device Flow中，设备通过Device Code换取Access Token的接口过于频繁，两次尝试的间隔应大于5秒。"}
 	AUTHORIZATION_PENDING = &Credentials_ResponseErr{error:"authorization_pending",error_description:"User has not yet completed the authorization",description:"Device Flow中，用户还没有对Device Code完成授权操作。"}
 	AUTHORIZATION_DECLINED = &Credentials_ResponseErr{error:"authorization_declined",error_description:"User has declined the authorization",description:"Device Flow中，用户拒绝了对Device Code的授权操作。"}
 	INVALID_REFERER = &Credentials_ResponseErr{error:"invalid_referer",error_description:"Invalid Referer",description:"Implicit Grant模式中，浏览器请求的Referer与根域名绑定不匹配"}
