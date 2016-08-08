@@ -6,115 +6,81 @@ import (
 	"io/ioutil"
 	"net"
 	"encoding/base64"
-	"net/url"
-	"fmt"
 	"bytes"
+	"fmt"
+	"strconv"
+	"net/url"
+	"errors"
+	"time"
 )
+
+type API_Util struct {
+	Credentials Credentials_Response
+	Cuid        string
+}
 
 /*
 	获取一个本地的MAC地址作为API的 cuid
  */
-func GetCUID() (cuId string, err error) {
+func getCUID() (cuId string, err error) {
 
 	interfaces, err := net.Interfaces()
 	if err != nil {
 		return
 	}
 
-	cuId = string(interfaces[0].HardwareAddr)
+	cuId = fmt.Sprintf("%s", interfaces[0].HardwareAddr)
 	return
 }
 
-func GetToken(API_Key, Secret_Key string) (token string, err error) {
+func getCredentials(request Credentials_Request) (response Credentials_Response, err error) {
 
-	//不知道这里有没有更好的方案，传递结构体就能作为参数
 	postValue := url.Values{};
-	postValue.Set("client_id", API_Key)
-	postValue.Set("client_secret", Secret_Key)
+	postValue.Set("scope", request.Scope)
+	postValue.Set("client_id", request.Client_id)
 	postValue.Set("grant_type", "client_credentials")
+	postValue.Set("client_secret", request.Client_secret)
 
-	response, err := http.PostForm(Credentials_Url, postValue)
+	postResponse, err := http.PostForm(Credentials_Url, postValue)
 	if err != nil {
 		return
 	}
-	defer response.Body.Close()
+	defer postResponse.Body.Close()
 
-	body, err := ioutil.ReadAll(response.Body);
-	if err != nil {
-		return
-	}
-
-	var result map[string]interface{}
-	err = json.Unmarshal([]byte(body), &result);
+	body, err := ioutil.ReadAll(postResponse.Body);
 	if err != nil {
 		return
 	}
 
-	token = fmt.Sprintf("%s", result["access_token"])
+	var result = make(map[string]string)
+	err = json.Unmarshal(body, &result);
+
+	if err == nil {
+		if value, ok := result["error"]; ok {
+			err = errors.New(Credentials_ResponseErrEnum[value].Description)
+			return
+		}
+	}
+
+	err = json.Unmarshal(body, &response);
+
 	return
 }
 
-func SendBytesRequest(filePath, token, cuid string) (result string, err error) {
+func NewAPI_Util(api_key, secret_key string) (util API_Util, err error) {
 
-	data, err := ioutil.ReadFile(filePath)
+	cuid, err := getCUID()
 	if err != nil {
 		return
 	}
 
-	soundStr := printBase64Binary(data)
+	res, err := getCredentials(Credentials_Request{
+		Client_id:api_key, Client_secret:secret_key})
 
-	param := &API_Request{Speech:soundStr, Token:token, Cuid:cuid}
-	param.Format = "pcm"
-	param.Rate = 8000
-	param.Channel = 1
-	param.Len = len(data)
+	util.Cuid = cuid
+	util.Credentials = res
 
-	postValue, err := json.Marshal(param)
-	if err != nil {
-		return
-	}
-
-	response, err := http.Post(API_URL,
-		"application/json; charset=utf-8",
-		bytes.NewReader(postValue));
-
-	if err != nil {
-		return
-	}
-	defer response.Body.Close()
-
-	body, err := ioutil.ReadAll(response.Body);
-	if err != nil {
-		return
-	}
-
-	result = string(body)
 	return
-}
-
-func SendFileRequest(filePath, token, cuid string) (result string, err error) {
-
-	data, err := ioutil.ReadFile(filePath)
-	if err != nil {
-		return
-	}
-
-	param := bytes.NewReader(data)
-	url := API_URL+"?cuid="+cuid+"&token="+token
-	response, err := http.Post(url,"audio/pcm; rate=8000", param);
-	if err != nil {
-		return
-	}
-	defer response.Body.Close()
-
-	body, err := ioutil.ReadAll(response.Body);
-	if err != nil {
-		return
-	}
-
-	result = string(body)
-	return
-
 }
 
 func printBase64Binary(val []byte) string {
@@ -123,4 +89,99 @@ func printBase64Binary(val []byte) string {
 	encoding := base64.NewEncoding(base64Table);
 
 	return encoding.EncodeToString(val)
+}
+
+func (this API_Util) SendBytesRequest(filePath, format string, rate int) (result API_Response, err error) {
+
+	data, err := ioutil.ReadFile(filePath)
+	if err != nil {
+		return
+	}
+
+	soundStr := printBase64Binary(data)
+
+	param := &API_Request{Speech:soundStr, Cuid:this.Cuid,
+		Token:this.Credentials.Refresh_token}
+	param.Rate = rate
+	param.Channel = 1
+	param.Len = len(data)
+	param.Format = format
+
+	postValue, err := json.Marshal(param)
+	if err != nil {
+		return
+	}
+
+	begin := time.Now()
+	response, err := http.Post(API_URL,
+		"application/json; charset=utf-8",
+		bytes.NewReader(postValue));
+
+	if err != nil {
+		return
+	}
+	defer response.Body.Close()
+	end := time.Now()
+
+	fmt.Println("SendBytesRequest用时:",end.Sub(begin))
+
+	body, err := ioutil.ReadAll(response.Body);
+	if err != nil {
+		return
+	}
+
+	var first = make(map[string]string)
+	err = json.Unmarshal(body, &result);
+
+	if err == nil {
+		if value, ok := first["err_code"]; ok {
+			code, _ := strconv.Atoi(value)
+			err = errors.New(API_ResponseErrEnum[code].Meaning)
+			return
+		}
+	}
+
+	err = json.Unmarshal(body, &result);
+	return
+}
+
+func (this API_Util) SendFileRequest(filePath, format string, rate int) (result API_Response, err error) {
+
+	data, err := ioutil.ReadFile(filePath)
+	if err != nil {
+		return
+	}
+
+	param := bytes.NewReader(data)
+	url := API_URL + "?cuid=" + this.Cuid + "&token=" + this.Credentials.Refresh_token
+	contentType := "audio/" + format + "; rate=" + strconv.Itoa(rate)
+
+	begin := time.Now()
+	response, err := http.Post(url, contentType, param);
+	if err != nil {
+		return
+	}
+	defer response.Body.Close()
+	end := time.Now()
+
+	fmt.Println("SendFileRequest用时:",end.Sub(begin))
+
+	body, err := ioutil.ReadAll(response.Body);
+	if err != nil {
+		return
+	}
+
+	var first = make(map[string]string)
+	err = json.Unmarshal(body, &result);
+
+	if err == nil {
+		if value, ok := first["err_code"]; ok {
+			code, _ := strconv.Atoi(value)
+			err = errors.New(API_ResponseErrEnum[code].Meaning)
+			return
+		}
+	}
+
+	err = json.Unmarshal(body, &result);
+	return
 }

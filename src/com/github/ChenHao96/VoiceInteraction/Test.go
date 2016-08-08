@@ -1,10 +1,10 @@
 package main
 
 import (
-	"fmt"
-	"os"
-	"syscall"
 	"com/baidu/yuyin"
+	"os"
+	"fmt"
+	"encoding/json"
 )
 
 const (
@@ -15,30 +15,28 @@ const (
 func main() {
 
 	filePath := os.Getenv("GOPATH") + "/resources/test.pcm"
-
-	token, err := yuyin.GetToken(API_Key, Secret_Key);
+	util, err := yuyin.NewAPI_Util(API_Key, Secret_Key)
 	if err != nil {
-		fmt.Println("token获取异常:", err)
-		syscall.Exit(-1)
+		panic(err)
 	}
 
-	cuid, err := yuyin.GetCUID()
+	result, err := util.SendFileRequest(filePath, "pcm", 8000)
 	if err != nil {
-		fmt.Println("cuid获取异常:", err)
-		syscall.Exit(-1)
+		panic(err.Error())
 	}
+	value, err := json.Marshal(result)
+	if err != nil {
+		panic(err.Error())
+	}
+	fmt.Println("SendFileRequest:", string(value))
 
-	result, err := yuyin.SendBytesRequest(filePath, token, cuid)
+	result, err = util.SendBytesRequest(filePath, "pcm", 8000)
 	if err != nil {
-		fmt.Println("byteRequest获取异常:", err)
-		syscall.Exit(-1)
+		panic(err.Error())
 	}
-	fmt.Println("byteRequest:",result)
-
-	result, err = yuyin.SendFileRequest(filePath, token, cuid)
+	value, err = json.Marshal(result)
 	if err != nil {
-		fmt.Println("fileRequest获取异常:", err)
-		syscall.Exit(-1)
+		panic(err.Error())
 	}
-	fmt.Println("fileRequest:",result)
+	fmt.Println("SendBytesRequest:", string(value))
 }
