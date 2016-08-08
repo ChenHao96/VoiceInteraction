@@ -27,7 +27,7 @@ func text() {
 		panic(err.Error())
 	}
 
-	err = util.Text2AudioFile(resourcePath, "test.pm3", "你好吗")
+	err = util.Text2AudioFile(resourcePath, "test.mp3", "你好吗")
 	if err != nil {
 		panic(err.Error())
 	}
