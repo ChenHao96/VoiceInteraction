@@ -4,77 +4,28 @@ import (
 	"net/http"
 	"encoding/json"
 	"io/ioutil"
-	"net"
 	"encoding/base64"
 	"bytes"
 	"fmt"
 	"strconv"
-	"net/url"
 	"errors"
 	"time"
+	"com/baidu/public"
 )
 
 type API_Util struct {
-	Credentials Credentials_Response
+	Credentials public.Credentials_Response
 	Cuid        string
-}
-
-/*
-	获取一个本地的MAC地址作为API的 cuid
- */
-func getCUID() (cuId string, err error) {
-
-	interfaces, err := net.Interfaces()
-	if err != nil {
-		return
-	}
-
-	cuId = fmt.Sprintf("%s", interfaces[0].HardwareAddr)
-	return
-}
-
-func getCredentials(request Credentials_Request) (response Credentials_Response, err error) {
-
-	postValue := url.Values{};
-	postValue.Set("scope", request.Scope)
-	postValue.Set("client_id", request.Client_id)
-	postValue.Set("grant_type", "client_credentials")
-	postValue.Set("client_secret", request.Client_secret)
-
-	postResponse, err := http.PostForm(Credentials_Url, postValue)
-	if err != nil {
-		return
-	}
-	defer postResponse.Body.Close()
-
-	body, err := ioutil.ReadAll(postResponse.Body);
-	if err != nil {
-		return
-	}
-
-	var result = make(map[string]string)
-	err = json.Unmarshal(body, &result);
-
-	if err == nil {
-		if value, ok := result["error"]; ok {
-			err = errors.New(Credentials_ResponseErrEnum[value].Description)
-			return
-		}
-	}
-
-	err = json.Unmarshal(body, &response);
-
-	return
 }
 
 func NewAPI_Util(api_key, secret_key string) (util API_Util, err error) {
 
-	cuid, err := getCUID()
+	cuid, err := public.GetCUID()
 	if err != nil {
 		return
 	}
 
-	res, err := getCredentials(Credentials_Request{
+	res, err := public.GetCredentials(public.Credentials_Request{
 		Client_id:api_key, Client_secret:secret_key})
 
 	util.Cuid = cuid
@@ -123,7 +74,7 @@ func (this API_Util) SendBytesRequest(filePath, format string, rate int) (result
 	defer response.Body.Close()
 	end := time.Now()
 
-	fmt.Println("SendBytesRequest用时:",end.Sub(begin))
+	fmt.Println("SendBytesRequest用时:", end.Sub(begin))
 
 	body, err := ioutil.ReadAll(response.Body);
 	if err != nil {
@@ -164,7 +115,7 @@ func (this API_Util) SendFileRequest(filePath, format string, rate int) (result 
 	defer response.Body.Close()
 	end := time.Now()
 
-	fmt.Println("SendFileRequest用时:",end.Sub(begin))
+	fmt.Println("SendFileRequest用时:", end.Sub(begin))
 
 	body, err := ioutil.ReadAll(response.Body);
 	if err != nil {
