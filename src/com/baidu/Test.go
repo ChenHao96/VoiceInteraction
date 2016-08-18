@@ -4,20 +4,30 @@ import (
 	"com/baidu/yuyin"
 	"os"
 	"fmt"
-	"encoding/json"
 	"com/baidu/ttl"
+	"os/exec"
 )
 
 const (
-	API_Key = "************************"
-	Secret_Key = "********************************"
+	//API_Key = "************************"
+	//Secret_Key = "********************************"
+	API_Key = "6NzYjugkwzipGIMbLRPKjCaQ"
+	Secret_Key = "63950f36a6d2026ad8d9a7afbbb66895"
 )
 
 var resourcePath = os.Getenv("GOPATH") + "/resources/"
 
 func main() {
-	//voice()
+
+	voice()
+
 	text()
+
+	//window下将gplay加到system32下就能听到声音
+	c := exec.Command("gplay", resourcePath + "test.mp3")
+	if err := c.Run(); "exit status 1" != fmt.Sprintf("%s", err) {
+		fmt.Println("Error:", err)
+	}
 }
 
 func text() {
@@ -27,10 +37,12 @@ func text() {
 		panic(err.Error())
 	}
 
-	err = util.Text2AudioFile(resourcePath, "test.mp3", "你好吗")
+	err = util.Text2AudioFile(resourcePath + "test.mp3", "百度语音提供技术支持，")
 	if err != nil {
 		panic(err.Error())
 	}
+
+	fmt.Println("百度语音提供技术支持，")
 }
 
 func voice() {
@@ -45,19 +57,11 @@ func voice() {
 	if err != nil {
 		panic(err.Error())
 	}
-	value, err := json.Marshal(result)
-	if err != nil {
-		panic(err.Error())
-	}
-	fmt.Println("SendFileRequest:", string(value))
+	fmt.Println("SendFileRequest:", result.Result)
 
 	result, err = util.SendBytesRequest(filePath, "pcm", 8000)
 	if err != nil {
 		panic(err.Error())
 	}
-	value, err = json.Marshal(result)
-	if err != nil {
-		panic(err.Error())
-	}
-	fmt.Println("SendBytesRequest:", string(value))
+	fmt.Println("SendBytesRequest:", result.Result)
 }

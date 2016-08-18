@@ -92,11 +92,9 @@ func GetCredentials(request Credentials_Request) (response Credentials_Response,
 	var result = make(map[string]string)
 	err = json.Unmarshal(body, &result);
 
-	if err == nil {
-		if value, ok := result["error"]; ok {
-			err = errors.New(Credentials_ResponseErrEnum[value].Description)
-			return
-		}
+	if value, ok := result["error"]; ok {
+		err = errors.New(Credentials_ResponseErrEnum[value].Description)
+		return
 	}
 
 	err = json.Unmarshal(body, &response);
