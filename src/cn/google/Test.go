@@ -1,7 +1,9 @@
 package main
 
-import "cn/google/translate"
+import (
+	"cn/google/translate"
+)
 
 func main() {
-	translate.TestHello("who","zh-CN","en")
+	translate.TestHello("who", "zh-CN", "en")
 }
