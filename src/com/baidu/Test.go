@@ -22,7 +22,7 @@ func main() {
 	text()
 
 	//window下将gplay加到system32下就能听到声音
-	c := exec.Command("gplay", resourcePath + "test.mp3")
+	c := exec.Command(resourcePath+"gplay.exe", resourcePath + "test.mp3")
 	if err := c.Run(); "exit status 1" != fmt.Sprintf("%s", err) {
 		fmt.Println("Error:", err)
 	}
