@@ -2,10 +2,11 @@ package tts
 
 import (
 	"com/baidu/public"
-	"net/http"
 	"encoding/json"
 	"io/ioutil"
+	"net/http"
 	"net/url"
+	"strconv"
 )
 
 //REST API Url
@@ -23,16 +24,25 @@ type API_Request struct {
 	Per  int    `json:"per,omitempty"` //选填；发音人选择，取值0-1；默认0女声 1男声
 }
 
+var API_ResponseErrEnum = map[int]string{
+	500: "不支持输入",
+	501: "输入参数不正确",
+	502: "token验证失败",
+	503: "合成后端错误",
+}
+
 type API_Response struct {
-	Err_no  int        `json:"err_no"`
-	Err_msg string     `json:"err_msg"`
-	Sn      string     `json:"sn"`
-	Idx     int        `json:"idx"`
+	Err_no  int    `json:"err_no"`
+	Err_msg string `json:"err_msg"`
+	Sn      string `json:"sn"`
+	Idx     int    `json:"idx"`
 }
 
 type API_Util struct {
 	Credentials public.Credentials_Response
 	Cuid        string
+	api_key     string
+	secret_key  string
 }
 
 func NewAPI_Util(api_key, secret_key string) API_Util {
@@ -40,11 +50,13 @@ func NewAPI_Util(api_key, secret_key string) API_Util {
 	cuid := public.GetCUID()
 
 	res := public.GetCredentials(public.Credentials_Request{
-		Client_id:api_key, Client_secret:secret_key})
+		Client_id: api_key, Client_secret: secret_key})
 
 	var util API_Util
 	util.Cuid = cuid
 	util.Credentials = res
+	util.api_key = api_key
+	util.secret_key = secret_key
 
 	return util
 }
@@ -59,7 +71,7 @@ func (this API_Util) Text2AudioFile(filePath, text string) {
 	}
 }
 
-func (this API_Util) Text2AudioBytes(text string) []byte {
+func (this *API_Util) Text2AudioBytes(text string) []byte {
 
 	param := url.Values{}
 	param.Set("ctp", "1")
@@ -74,7 +86,7 @@ func (this API_Util) Text2AudioBytes(text string) []byte {
 		panic(err.Error())
 	}
 
-	body, err := ioutil.ReadAll(response.Body);
+	body, err := ioutil.ReadAll(response.Body)
 	if err != nil {
 		panic(err.Error())
 	}
@@ -84,11 +96,18 @@ func (this API_Util) Text2AudioBytes(text string) []byte {
 		return body
 	} else {
 		var errMsg API_Response
-		err = json.Unmarshal(body, &errMsg);
+		err = json.Unmarshal(body, &errMsg)
 		if nil != err {
 			panic(err.Error())
 		} else {
-			panic(errMsg.Err_msg)
+			if 502 == errMsg.Err_no {
+				this = NewAPI_Util(this.api_key, this.secret_key)
+				return this.Text2AudioBytes(text)
+			} else if errMean, ok := API_ResponseErrEnum[errMsg.Err_no]; ok {
+				panic(errMean)
+			} else {
+				panic("Unknow:API返回的错误编码未定义 err_no:" + strconv.Itoa(errMsg.Err_no))
+			}
 		}
 	}
 }
