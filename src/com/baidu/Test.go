@@ -9,8 +9,8 @@ import (
 )
 
 const (
-	API_Key = "************************"
-	Secret_Key = "********************************"
+	API_Key = "6NzYjugkwzipGIMbLRPKjCaQ"
+	Secret_Key = "63950f36a6d2026ad8d9a7afbbb66895"
 )
 
 var resourcePath = os.Getenv("GOPATH") + "/resources/"
