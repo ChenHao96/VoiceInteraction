@@ -101,7 +101,7 @@ func (this *API_Util) Text2AudioBytes(text string) []byte {
 			panic(err.Error())
 		} else {
 			if 502 == errMsg.Err_no {
-				this = NewAPI_Util(this.api_key, this.secret_key)
+				*this = NewAPI_Util(this.api_key, this.secret_key)
 				return this.Text2AudioBytes(text)
 			} else if errMean, ok := API_ResponseErrEnum[errMsg.Err_no]; ok {
 				panic(errMean)
