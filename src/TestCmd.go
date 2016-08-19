@@ -5,8 +5,9 @@ import (
 	"os"
 	"fmt"
 	"bufio"
+	"strconv"
 	"com/baidu/yuyin"
-	"com/baidu/ttl"
+	"com/baidu/tts"
 )
 
 const (
@@ -14,10 +15,27 @@ const (
 	Secret_Key = "********************************"
 )
 
-func main() {
-	fileName := "test.wav"
+var resourcePath = os.Getenv("GOPATH") + "/resources/"
 
-	cmd := exec.Command("arecord", "-r", "16000", "-t", "wav", "-c", "1", "-f", "S16_LE", fileName)
+/*
+该测试在linux下运行
+ */
+func main() {
+
+	suffix := "wav"
+	fileName := "test." + suffix
+	rate := 16000
+
+	/*
+		打开linux下的录音软件
+		-r 采样率
+		-t 文件格式
+		-c 声道
+		-f 位深
+		-d 录音时间(单位；秒)
+		arecord的操作可以查看：http://blog.chinaunix.net/uid-29616823-id-4761787.html
+	 */
+	cmd := exec.Command("arecord", "-r", strconv.Itoa(rate), "-t", suffix, "-c", "1", "-f", "S16_LE", resourcePath + fileName)
 	cmd.Stderr = os.Stderr
 	cmd.Stdout = os.Stdout
 	go func() {
@@ -40,25 +58,20 @@ func main() {
 	fmt.Println("结束聆听。")
 	cmd.Process.Kill()
 
-	util, err := yuyin.NewAPI_Util(API_Key, Secret_Key)
-	if err != nil {
-		panic(err.Error())
-	}
+	util := yuyin.NewAPI_Util(API_Key, Secret_Key)
+	result := util.SendFileRequest(resourcePath + fileName, suffix, rate)
 
-	result, err := util.SendFileRequest(fileName, "wav", 16000)
-	if err != nil {
-		panic(err.Error())
-	}
-	fmt.Println("SendFileRequest:", result.Result[0])
+	resultText := result.Result[0]
+	fmt.Println("SendFileRequest:", resultText)
 
-	ttlUtil, err := ttl.NewAPI_Util(API_Key, Secret_Key)
-	if err != nil {
-		panic(err.Error())
-	}
+	ttsUtil := tts.NewAPI_Util(API_Key, Secret_Key)
+	ttsUtil.Text2AudioFile(resourcePath + "test.mp3", resultText)
 
-	ttlUtil.Text2AudioFile(fileName,result.Result[0])
-
-	cmd = exec.Command("aplay", fileName)
+	/*
+		linux 下安装下面的库
+		sudo apt-get install sox libsox-fmt-all
+	 */
+	cmd = exec.Command("play", resourcePath + "test.mp3")
 	cmd.Stderr = os.Stderr
 	cmd.Stdout = os.Stdout
 	if err := cmd.Run(); nil != err {

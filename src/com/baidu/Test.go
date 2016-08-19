@@ -4,7 +4,7 @@ import (
 	"com/baidu/yuyin"
 	"os"
 	"fmt"
-	"com/baidu/ttl"
+	"com/baidu/tts"
 	"os/exec"
 )
 
@@ -29,15 +29,9 @@ func main() {
 
 func text() {
 
-	util, err := ttl.NewAPI_Util(API_Key, Secret_Key)
-	if err != nil {
-		panic(err.Error())
-	}
+	util := tts.NewAPI_Util(API_Key, Secret_Key)
 
-	err = util.Text2AudioFile(resourcePath + "test.mp3", "百度语音提供技术支持，")
-	if err != nil {
-		panic(err.Error())
-	}
+	util.Text2AudioFile(resourcePath + "test.mp3", "百度语音提供技术支持，")
 
 	fmt.Println("Text2AudioFile：百度语音提供技术支持，")
 }
@@ -45,20 +39,11 @@ func text() {
 func voice() {
 
 	filePath := resourcePath + "test.pcm"
-	util, err := yuyin.NewAPI_Util(API_Key, Secret_Key)
-	if err != nil {
-		panic(err.Error())
-	}
+	util := yuyin.NewAPI_Util(API_Key, Secret_Key)
 
-	result, err := util.SendFileRequest(filePath, "pcm", 8000)
-	if err != nil {
-		panic(err.Error())
-	}
+	result := util.SendFileRequest(filePath, "pcm", 8000)
 	fmt.Println("SendFileRequest:", result.Result)
 
-	result, err = util.SendBytesRequest(filePath, "pcm", 8000)
-	if err != nil {
-		panic(err.Error())
-	}
+	result = util.SendBytesRequest(filePath, "pcm", 8000)
 	fmt.Println("SendBytesRequest:", result.Result)
 }

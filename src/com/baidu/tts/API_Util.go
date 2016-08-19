@@ -1,11 +1,10 @@
-package ttl
+package tts
 
 import (
 	"com/baidu/public"
 	"net/http"
 	"encoding/json"
 	"io/ioutil"
-	"errors"
 	"net/url"
 )
 
@@ -36,34 +35,31 @@ type API_Util struct {
 	Cuid        string
 }
 
-func NewAPI_Util(api_key, secret_key string) (util API_Util, err error) {
+func NewAPI_Util(api_key, secret_key string) API_Util {
 
-	cuid, err := public.GetCUID()
-	if err != nil {
-		return
-	}
+	cuid := public.GetCUID()
 
-	res, err := public.GetCredentials(public.Credentials_Request{
+	res := public.GetCredentials(public.Credentials_Request{
 		Client_id:api_key, Client_secret:secret_key})
 
+	var util API_Util
 	util.Cuid = cuid
 	util.Credentials = res
 
-	return
+	return util
 }
 
-func (this API_Util) Text2AudioFile(filePath, text string) (err error) {
+func (this API_Util) Text2AudioFile(filePath, text string) {
 
-	body, err := this.Text2AudioBytes(text)
+	body := this.Text2AudioBytes(text)
+
+	err := ioutil.WriteFile(filePath, body, 0666)
 	if err != nil {
-		return
+		panic(err.Error())
 	}
-
-	err = ioutil.WriteFile(filePath, body, 0666)
-	return
 }
 
-func (this API_Util) Text2AudioBytes(text string) (data []byte, err error) {
+func (this API_Util) Text2AudioBytes(text string) []byte {
 
 	param := url.Values{}
 	param.Set("ctp", "1")
@@ -73,26 +69,26 @@ func (this API_Util) Text2AudioBytes(text string) (data []byte, err error) {
 	param.Set("tok", this.Credentials.Access_token)
 
 	response, err := http.PostForm(API_URL, param)
-	if err != nil {
-		return
-	}
 	defer response.Body.Close()
+	if err != nil {
+		panic(err.Error())
+	}
 
 	body, err := ioutil.ReadAll(response.Body);
 	if err != nil {
-		return
+		panic(err.Error())
 	}
 
 	contentType := response.Header.Get("Content-type")
 	if "audio/mp3" == contentType {
-		data = body
+		return body
 	} else {
 		var errMsg API_Response
 		err = json.Unmarshal(body, &errMsg);
-		if err == nil {
-			err = errors.New(errMsg.Err_msg)
+		if nil != err {
+			panic(err.Error())
+		} else {
+			panic(errMsg.Err_msg)
 		}
 	}
-
-	return
 }

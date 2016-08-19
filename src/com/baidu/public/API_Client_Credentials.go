@@ -2,7 +2,6 @@ package public
 
 import (
 	"encoding/json"
-	"errors"
 	"io/ioutil"
 	"net/http"
 	"net/url"
@@ -40,12 +39,12 @@ type Credentials_Request struct {
 	Grant_type    string //必填参数 固定为“client_credentials”；
 	Client_id     string //必填参数 应用的API Key
 	Client_secret string //必须参数 应用的Secret Key;
-	/*
-	     非必须参数。
-	     以空格分隔的权限列表，采用本方式获取Access Token时只能申请跟用户数据无关的数据访问权限。
-	     关于权限的具体信息请参考
-	     http://developer.baidu.com/wiki/index.php?title=docs/oauth/list
-	*/
+			     /*
+				  非必须参数。
+				  以空格分隔的权限列表，采用本方式获取Access Token时只能申请跟用户数据无关的数据访问权限。
+				  关于权限的具体信息请参考
+				  http://developer.baidu.com/wiki/index.php?title=docs/oauth/list
+			     */
 	Scope         string
 }
 
@@ -55,12 +54,12 @@ type Credentials_Response struct {
 	Refresh_token  string `json:"refresh_token"`  //用于刷新Access Token 的 Refresh Token,所有应用都会返回该参数;（10年的有效期）
 	Session_key    string `json:"session_key"`    //基于http调用Open API时所需要的Session Key,其有效期与Access Token一致;
 	Session_secret string `json:"session_secret"` //基于http调用Open API时计算参数签名用的签名密钥.
-	/*
-	  Access Token最终的访问范围，
-	  即用户实际授予的权限列表（用户在授权页面时，有可能会取消掉某些请求的权限），
-	  关于权限的具体信息参考
-	  http://developer.baidu.com/wiki/index.php?title=docs/oauth/list
-	*/
+						      /*
+							Access Token最终的访问范围，
+							即用户实际授予的权限列表（用户在授权页面时，有可能会取消掉某些请求的权限），
+							关于权限的具体信息参考
+							http://developer.baidu.com/wiki/index.php?title=docs/oauth/list
+						      */
 	Scope          string `json:"scope"`
 }
 
@@ -70,7 +69,7 @@ type Credentials_ResponseErr struct {
 	Description       string
 }
 
-func GetCredentials(request Credentials_Request) (response Credentials_Response, err error) {
+func GetCredentials(request Credentials_Request) Credentials_Response {
 
 	postValue := url.Values{};
 	postValue.Set("scope", request.Scope)
@@ -80,38 +79,43 @@ func GetCredentials(request Credentials_Request) (response Credentials_Response,
 
 	postResponse, err := http.PostForm(Credentials_Url, postValue)
 	if err != nil {
-		return
+		panic(err.Error())
 	}
 	defer postResponse.Body.Close()
 
 	body, err := ioutil.ReadAll(postResponse.Body);
 	if err != nil {
-		return
+		panic(err.Error())
 	}
 
 	var result = make(map[string]string)
 	err = json.Unmarshal(body, &result);
 
 	if value, ok := result["error"]; ok {
-		err = errors.New(Credentials_ResponseErrEnum[value].Description)
-		return
+		panic(Credentials_ResponseErrEnum[value].Description)
 	}
 
+	var response Credentials_Response
 	err = json.Unmarshal(body, &response);
+	if err != nil {
+		panic(err.Error())
+	}
 
-	return
+	return response
 }
 
 /*
 	获取一个本地的MAC地址作为API的 cuid
  */
-func GetCUID() (cuId string, err error) {
+func GetCUID() string {
 
 	interfaces, err := net.Interfaces()
 	if err != nil {
-		return
+		panic(err.Error())
 	}
 
-	cuId = fmt.Sprintf("%s", interfaces[0].HardwareAddr)
-	return
+	result := fmt.Sprintf("%s", interfaces[0].HardwareAddr)
+	//这里有点小毛病windows下不写固定的mac是可以的到了linux就不行
+	result = "00:0c:29:33:80:cf"
+	return result
 }

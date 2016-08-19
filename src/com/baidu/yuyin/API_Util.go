@@ -7,7 +7,6 @@ import (
 	"encoding/base64"
 	"bytes"
 	"strconv"
-	"errors"
 	"com/baidu/public"
 	"io"
 )
@@ -60,49 +59,48 @@ type API_Util struct {
 	Cuid        string
 }
 
-func NewAPI_Util(api_key, secret_key string) (util API_Util, err error) {
+func NewAPI_Util(api_key, secret_key string) API_Util {
 
-	cuid, err := public.GetCUID()
-	if err != nil {
-		return
-	}
+	cuid := public.GetCUID()
 
-	res, err := public.GetCredentials(public.Credentials_Request{
+	res := public.GetCredentials(public.Credentials_Request{
 		Client_id:api_key, Client_secret:secret_key})
 
+	var util API_Util
 	util.Cuid = cuid
 	util.Credentials = res
 
-	return
+	return util
 }
 
-func getResult(url, contentType string, data io.Reader) (result API_Response, err error) {
+func getResult(url, contentType string, data io.Reader) API_Response {
 
 	response, err := http.Post(url, contentType, data);
 	defer response.Body.Close()
 	if err != nil {
-		return
+		panic(err.Error())
 	}
 
 	body, err := ioutil.ReadAll(response.Body);
 	if err != nil {
-		return
+		panic(err.Error())
 	}
 
 	var first = make(map[string]string)
-	err = json.Unmarshal(body, &first);
+	json.Unmarshal(body, &first);
 
 	if value, ok := first["err_code"]; ok {
 		code, _ := strconv.Atoi(value)
 		errMean, ok := API_ResponseErrEnum[code]
 		if ok {
-			err = errors.New(errMean.Meaning)
-			return
+			panic(errMean.Meaning)
 		}
 	}
 
-	err = json.Unmarshal(body, &result);
-	return
+	var result API_Response
+	json.Unmarshal(body, &result);
+
+	return result
 }
 
 func printBase64Binary(val []byte) string {
@@ -116,11 +114,11 @@ func printBase64Binary(val []byte) string {
 /*
  不太推荐使用效率很低
 */
-func (this API_Util) SendBytesRequest(filePath, format string, rate int) (API_Response, error) {
+func (this API_Util) SendBytesRequest(filePath, format string, rate int) API_Response {
 
 	data, err := ioutil.ReadFile(filePath)
 	if err != nil {
-		return API_Response{}, err
+		panic(err.Error())
 	}
 
 	soundStr := printBase64Binary(data)
@@ -134,17 +132,17 @@ func (this API_Util) SendBytesRequest(filePath, format string, rate int) (API_Re
 
 	postValue, err := json.Marshal(param)
 	if err != nil {
-		return API_Response{}, err
+		panic(err.Error())
 	}
 
 	return getResult(API_URL, "application/json; charset=utf-8", bytes.NewReader(postValue))
 }
 
-func (this API_Util) SendFileRequest(filePath, format string, rate int) (API_Response, error) {
+func (this API_Util) SendFileRequest(filePath, format string, rate int) API_Response {
 
 	data, err := ioutil.ReadFile(filePath)
 	if err != nil {
-		return API_Response{}, err
+		panic(err.Error())
 	}
 
 	url := API_URL + "?cuid=" + this.Cuid + "&token=" + this.Credentials.Refresh_token
