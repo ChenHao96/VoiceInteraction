@@ -8,6 +8,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"strconv"
+	"org/StevenChen/util"
 )
 
 //REST API Url
@@ -39,7 +40,7 @@ type API_Util struct {
 
 func NewAPI_Util(api_key, secret_key string) API_Util {
 
-	cuid := public.GetCUID()
+	cuid := util.GetCUID()
 
 	res := public.GetCredentials(public.Credentials_Request{
 		Client_id: api_key, Client_secret: secret_key})

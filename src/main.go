@@ -29,8 +29,8 @@ func main() {
 	ttsUtil := tts.NewAPI_Util(API_Key, Secret_Key)
 	voiceUtil := yuyin.API_Util{Credentials:ttsUtil.Credentials, Cuid:ttsUtil.Cuid}
 
-	playFile := resourcePath + "\test.mp3"
-	recordFile := resourcePath + "\test.wav"
+	playFile := resourcePath + "/test.mp3"
+	recordFile := resourcePath + "/test.wav"
 
 	for {
 		/*
