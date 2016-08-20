@@ -91,7 +91,9 @@ func GetCredentials(request Credentials_Request) Credentials_Response {
 
 	var result Credentials_ResponseErr
 	if err = json.Unmarshal(body, &result); nil == err{
-		panic(Credentials_ResponseErrEnum[result.Error].Description)
+		if description ,ok := Credentials_ResponseErrEnum[result.Error];ok{
+			panic(description)
+		}
 	}
 
 	var response Credentials_Response
