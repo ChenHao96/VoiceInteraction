@@ -57,6 +57,8 @@ type API_Response struct {
 type API_Util struct {
 	Credentials public.Credentials_Response
 	Cuid        string
+	api_key     string
+	secret_key  string
 }
 
 func NewAPI_Util(api_key, secret_key string) API_Util {
@@ -69,36 +71,39 @@ func NewAPI_Util(api_key, secret_key string) API_Util {
 	var util API_Util
 	util.Cuid = cuid
 	util.Credentials = res
+	util.api_key = api_key
+	util.secret_key = secret_key
 
 	return util
 }
 
-func getResult(url, contentType string, data io.Reader) API_Response {
+func (this *API_Util) getResult(url, contentType string, data io.Reader) API_Response {
 
-	response, err := http.Post(url, contentType, data);
+	response, err := http.Post(url, contentType, data)
 	defer response.Body.Close()
 	if err != nil {
 		panic(err.Error())
 	}
 
-	body, err := ioutil.ReadAll(response.Body);
+	body, err := ioutil.ReadAll(response.Body)
 	if err != nil {
 		panic(err.Error())
 	}
 
-	var first = make(map[string]string)
-	json.Unmarshal(body, &first);
-
-	if value, ok := first["err_code"]; ok {
-		code, _ := strconv.Atoi(value)
-		errMean, ok := API_ResponseErrEnum[code]
-		if ok {
-			panic(errMean.Meaning)
-		}
+	var result API_Response
+	err = json.Unmarshal(body, &result)
+	if nil != err {
+		panic(err.Error())
 	}
 
-	var result API_Response
-	json.Unmarshal(body, &result);
+	if 3302 == result.Err_no {
+		*this = NewAPI_Util(this.api_key, this.secret_key)
+		return this.getResult(url, contentType, data)
+	} else if 3301 == result.Err_no{
+		result.Result = []string{"啦啦啦"}
+	}else if errMean, ok := API_ResponseErrEnum[result.Err_no]; ok {
+		panic(errMean)
+	}
 
 	return result
 }
@@ -135,7 +140,7 @@ func (this API_Util) SendBytesRequest(filePath, format string, rate int) API_Res
 		panic(err.Error())
 	}
 
-	return getResult(API_URL, "application/json; charset=utf-8", bytes.NewReader(postValue))
+	return this.getResult(API_URL, "application/json; charset=utf-8", bytes.NewReader(postValue))
 }
 
 func (this API_Util) SendFileRequest(filePath, format string, rate int) API_Response {
@@ -148,5 +153,5 @@ func (this API_Util) SendFileRequest(filePath, format string, rate int) API_Resp
 	url := API_URL + "?cuid=" + this.Cuid + "&token=" + this.Credentials.Refresh_token
 	contentType := "audio/" + format + "; rate=" + strconv.Itoa(rate)
 
-	return getResult(url, contentType, bytes.NewReader(data))
+	return this.getResult(url, contentType, bytes.NewReader(data))
 }
