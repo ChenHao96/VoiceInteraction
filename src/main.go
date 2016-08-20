@@ -15,8 +15,8 @@ import (
 )
 
 const (
-	API_Key = "************************"
-	Secret_Key = "********************************"
+	API_Key = "ZC2NNfFUkg8rxgmVkfBC6ycX"
+	Secret_Key = "9a98e53b2ef7339bf03793f0b53fc7e4"
 )
 
 /*

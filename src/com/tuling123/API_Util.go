@@ -4,10 +4,10 @@ import (
 	"org/StevenChen/util"
 	"encoding/json"
 	"net/http"
-	"bytes"
 	"io/ioutil"
 	"strconv"
 	"strings"
+	"bytes"
 )
 
 const API_URL string = "http://www.tuling123.com/openapi/api"
