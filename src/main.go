@@ -72,6 +72,7 @@ func main() {
 		answer := service.DoSomething(result.Result)
 		if strings.Contains(answer, "闭嘴") {
 			answer = "虽然你这么说我会很伤心，但我还是要走的，再见。"
+			beExit = true
 		}
 		fmt.Println("响应结果(回答):", answer)
 
