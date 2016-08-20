@@ -59,7 +59,7 @@ type Credentials_Response struct {
 
 type Credentials_Response_Err struct {
 	Error             string `json:"error"`
-	Error_description string`json:"error_description"`
+	Error_description string `json:"error_description"`
 }
 
 func GetCredentials(request Credentials_Request) Credentials_Response {
@@ -83,7 +83,9 @@ func GetCredentials(request Credentials_Request) Credentials_Response {
 
 	var result Credentials_Response_Err
 	if nil == json.Unmarshal(body, &result) {
-		panic(Credentials_ResponseErrEnum[result.Error][1])
+		if description ,ok := Credentials_ResponseErrEnum[result.Error];ok{
+			panic(description[1])
+		}
 	}
 
 	var response Credentials_Response
