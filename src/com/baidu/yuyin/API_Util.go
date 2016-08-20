@@ -76,7 +76,9 @@ func (this *API_Util) getResult(url, contentType string, data io.Reader) API_Res
 	if 3302 == result.Err_no {
 		*this = NewAPI_Util(this.api_key, this.secret_key)
 		return this.getResult(url, contentType, data)
-	} else if errMean, ok := API_ResponseErrEnum[result.Err_no]; ok {
+	} else if 3301 == result.Err_no{
+		result.Result = []string{"啦啦啦"}
+	}else if errMean, ok := API_ResponseErrEnum[result.Err_no]; ok {
 		panic(errMean)
 	}
 
