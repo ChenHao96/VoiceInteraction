@@ -2,9 +2,11 @@ package service
 
 import "com/tuling123"
 
-const APT_KEY string = "d975f8141aa550cea27b7f48dd50c48d"
+const (
+	API_KEY string = "89b298ba45ec4a479dd9f20076d82b81"
+)
 
-var tuLingAPI = tuling123.NewAPI_Request(APT_KEY)
+var tuLingAPI = tuling123.NewAPI_Request(API_KEY)
 
 func DoSomething(result []string) string {
 	/**

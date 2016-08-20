@@ -1,13 +1,12 @@
 package tuling123
 
 import (
-	"org/StevenChen/util"
 	"encoding/json"
 	"net/http"
 	"io/ioutil"
-	"strconv"
-	"strings"
 	"bytes"
+	"strings"
+	"org/StevenChen/util"
 )
 
 const API_URL string = "http://www.tuling123.com/openapi/api"
@@ -24,6 +23,11 @@ var API_Response_Err = map[int]string{
 	40002:"请求内容info为空",
 	40004:"当天请求次数已使用完",
 	40007:"数据格式异常",
+}
+
+type API_Response struct {
+	Code int`json:"code"`
+	Text string `json:"text"`
 }
 
 func NewAPI_Request(key string) API_Request {
@@ -43,9 +47,6 @@ func (this API_Request) Talk(worlds string) string {
 		panic(err.Error())
 	}
 
-	/**
-		有bug读不到数据
-	 */
 	response, err := http.Post(API_URL, "application/json; charset=utf-8", bytes.NewReader(data));
 	defer response.Body.Close()
 	if err != nil {
@@ -57,26 +58,16 @@ func (this API_Request) Talk(worlds string) string {
 		panic(err.Error())
 	}
 
-	var first = make(map[string]string)
+	var first API_Response
 	json.Unmarshal(body, &first);
 
-	if value, ok := first["code"]; ok {
-		code, err := strconv.Atoi(value)
-		if err != nil {
-			panic(err.Error())
-		}
-		if 100000 != code {
-			if content, ok := API_Response_Err[code]; ok {
-				panic(content)
-			} else {
-				goto returnL
-			}
+	if 100000 != first.Code {
+		if content, ok := API_Response_Err[first.Code]; ok {
+			panic(content)
+		} else {
+			panic("Unknow,该信息暂时无法识别")
 		}
 	}
 
-	if value, ok := first["text"]; ok {
-		return value
-	}
-
-	returnL: panic("Unknow,该信息暂时无法识别")
+	return first.Text
 }
