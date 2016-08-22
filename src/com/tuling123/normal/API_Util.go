@@ -1,15 +1,15 @@
-package tuling123
+package normal
 
 import (
+	"com/tuling123"
+	"com/tuling123/interfaces"
+	"strings"
 	"encoding/json"
 	"net/http"
-	"io/ioutil"
 	"bytes"
-	"strings"
 	"org/StevenChen/util"
+	"io/ioutil"
 )
-
-const API_URL string = "http://www.tuling123.com/openapi/api"
 
 type API_Request struct {
 	Key    string `json:"key"`           //必须	32位	1ca8089********736b8ce41591426(32位)		注册之后在机器人接入页面获得（参见本文档第2部分）
@@ -18,19 +18,7 @@ type API_Request struct {
 	Loc    string `json:"loc,omitempty"` //非必须	1-30位	北京市中关村					位置信息，请求跟地理位置相关的内容时使用，编码方式UTF-8
 }
 
-var API_Response_Err = map[int]string{
-	40001:"参数key错误",
-	40002:"请求内容info为空",
-	40004:"当天请求次数已使用完",
-	40007:"数据格式异常",
-}
-
-type API_Response struct {
-	Code int`json:"code"`
-	Text string `json:"text"`
-}
-
-func NewAPI_Request(key string) API_Request {
+func NewAPI_Request(key string) interfaces.API_Util {
 
 	var request API_Request
 	request.Key = key
@@ -47,7 +35,7 @@ func (this API_Request) Talk(worlds string) string {
 		panic(err.Error())
 	}
 
-	response, err := http.Post(API_URL, "application/json; charset=utf-8", bytes.NewReader(data));
+	response, err := http.Post(tuling123.API_URL, "application/json; charset=utf-8", bytes.NewReader(data));
 	defer response.Body.Close()
 	if err != nil {
 		panic(err.Error())
@@ -58,11 +46,11 @@ func (this API_Request) Talk(worlds string) string {
 		panic(err.Error())
 	}
 
-	var first API_Response
+	var first tuling123.API_Response
 	json.Unmarshal(body, &first);
 
 	if 100000 != first.Code {
-		if content, ok := API_Response_Err[first.Code]; ok {
+		if content, ok := tuling123.API_Response_Err[first.Code]; ok {
 			panic(content)
 		} else {
 			panic("Unknow,该信息暂时无法识别")
