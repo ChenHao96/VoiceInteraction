@@ -57,7 +57,6 @@ func (this API_Request) getData(data []byte) []byte {
 	}
 
 	dataP := base64.StdEncoding.EncodeToString(data)
-
 	requestParam := &request{Key:this.Key, Timestamp:timestamp, Data:dataP}
 	param, err := json.Marshal(requestParam)
 	if nil != err {
