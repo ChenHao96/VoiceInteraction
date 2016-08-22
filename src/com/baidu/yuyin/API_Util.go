@@ -108,14 +108,6 @@ func (this *API_Util) getResult(url, contentType string, data io.Reader) API_Res
 	return result
 }
 
-func printBase64Binary(val []byte) string {
-
-	base64Table := "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/"
-	encoding := base64.NewEncoding(base64Table);
-
-	return encoding.EncodeToString(val)
-}
-
 /*
  不太推荐使用效率很低
 */
@@ -126,7 +118,7 @@ func (this API_Util) SendBytesRequest(filePath, format string, rate int) API_Res
 		panic(err.Error())
 	}
 
-	soundStr := printBase64Binary(data)
+	soundStr := base64.StdEncoding.EncodeToString(data)
 
 	param := &API_Request{Speech:soundStr, Cuid:this.Cuid,
 		Token:this.Credentials.Refresh_token}
