@@ -30,6 +30,14 @@ public abstract class Record4Java implements RecordDataListener {
         this.recordFilePath = recordFilePath;
     }
 
+    public final boolean isRecordStop() {
+        return record_stop_flag;
+    }
+
+    public final boolean isPlayStop() {
+        return play_stop_flag;
+    }
+    
     /**
      * 设置AudioFormat的参数
      */
