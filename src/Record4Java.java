@@ -50,7 +50,7 @@ public abstract class Record4Java implements RecordDataListener {
     public enum Method {
         play,   //调用播放录音的方法
         save,   //调用保存录音的方法
-        stop,   //调用停止录音的方法
+        stop,   //调用停止录音、播放的方法
         capture //调用录音的方法
     }
 
