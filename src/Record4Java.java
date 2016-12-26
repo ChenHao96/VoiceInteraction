@@ -38,6 +38,11 @@ public abstract class Record4Java implements RecordDataListener {
         return play_stop_flag;
     }
     
+    public byte[] getByteArrayOutputStream() {
+        if (byteArrayOutputStream == null) return new byte[0];
+        return byteArrayOutputStream.toByteArray();
+    }
+    
     /**
      * 设置AudioFormat的参数
      */
