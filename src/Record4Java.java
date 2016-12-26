@@ -1,22 +1,19 @@
 import javax.sound.sampled.*;
 import java.io.*;
-import java.util.Arrays;
-import java.util.List;
 
 /**
- * 此类线程不安全
  * 此类为录音机的API部分
  * 提供了录音，停止，播放，保存等功能
  */
-public abstract class Record4Java implements LineListener {
+public abstract class Record4Java implements RecordDataListener {
 
-    public static final int BUF_SIZE = 16 * 1024;
-
+    /**
+     * 指定的文件保存路径
+     */
+    private String recordFilePath;
     private boolean play_stop_flag = false;
     private boolean record_stop_flag = false;
     private ByteArrayOutputStream byteArrayOutputStream = null;
-
-    private String recordFilePath;
 
     public Record4Java() {
     }
@@ -25,12 +22,17 @@ public abstract class Record4Java implements LineListener {
         this.recordFilePath = recordFilePath;
     }
 
-    public final byte[] getRecordByteArray() {
-        if (byteArrayOutputStream == null) return new byte[0];
-        return byteArrayOutputStream.toByteArray();
+    public String getRecordFilePath() {
+        return recordFilePath;
     }
 
-    //设置AudioFormat的参数
+    public void setRecordFilePath(String recordFilePath) {
+        this.recordFilePath = recordFilePath;
+    }
+
+    /**
+     * 设置AudioFormat的参数
+     */
     public AudioFormat getAudioFormat() {
 
         //采样率是每秒播放和录制的样本数
@@ -52,14 +54,20 @@ public abstract class Record4Java implements LineListener {
         capture //调用录音的方法
     }
 
-    public final void actionPerformed(Method method) {
+    /**
+     * 录音机的录音，停止，播放，保存等功能
+     *
+     * @param method 执行的方法
+     * @param waves  播放的wav文件(只支持wav)
+     * @return 调用save方法时返回文件路径
+     */
+    public final String actionPerformed(Method method, File... waves) {
         switch (method) {
             case play:
-                play(byteArrayOutputStream);
+                play(byteArrayOutputStream, waves);
                 break;
             case save:
-                save(byteArrayOutputStream);
-                break;
+                return save(byteArrayOutputStream);
             case capture:
                 byteArrayOutputStream = capture();
                 break;
@@ -67,6 +75,8 @@ public abstract class Record4Java implements LineListener {
                 stop();
                 break;
         }
+
+        return null;
     }
 
     public static void safeClose(Closeable closeable) {
@@ -93,19 +103,39 @@ public abstract class Record4Java implements LineListener {
     private ByteArrayOutputStream capture() {
 
         try {
-            AudioFormat audioFormat = getAudioFormat();
-            DataLine.Info info = new DataLine.Info(TargetDataLine.class, audioFormat);
-            TargetDataLine targetDataLine = (TargetDataLine) (AudioSystem.getLine(info));
-            targetDataLine.open(audioFormat);
-            targetDataLine.start();
-
             record_stop_flag = false;
+            TargetDataLine targetDataLine = getTargetDataLine();
             ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
-            new Thread(new Record(targetDataLine, byteArrayOutputStream)).start();
+            try {
+
+                byte[] bts = new byte[BUF_SIZE];
+                do {
+                    int cnt = targetDataLine.read(bts, 0, bts.length);
+                    if (cnt > 0) {
+                        byteArrayOutputStream.write(bts, 0, cnt);
+                    }
+                    processRecordData(bts);
+                } while (!record_stop_flag);
+            } finally {
+                safeClose(byteArrayOutputStream);
+                safeCloseDataLine(targetDataLine);
+            }
+
             return byteArrayOutputStream;
-        } catch (LineUnavailableException ex) {
+        } catch (Exception ex) {
             throw new RuntimeException(ex);
         }
+    }
+
+    private TargetDataLine getTargetDataLine() throws LineUnavailableException {
+
+        AudioFormat audioFormat = getAudioFormat();
+        DataLine.Info info = new DataLine.Info(TargetDataLine.class, audioFormat);
+        TargetDataLine targetDataLine = (TargetDataLine) (AudioSystem.getLine(info));
+        targetDataLine.open(audioFormat);
+        targetDataLine.start();
+
+        return targetDataLine;
     }
 
     private void stop() {
@@ -113,41 +143,77 @@ public abstract class Record4Java implements LineListener {
         record_stop_flag = true;
     }
 
-    private void play(ByteArrayOutputStream byteArrayOutputStream) {
+    private void play(ByteArrayOutputStream byteArrayOutputStream, File... waves) {
 
-        if (byteArrayOutputStream == null) return;
-        byte audioData[] = byteArrayOutputStream.toByteArray();
-        AudioFormat audioFormat = getAudioFormat();
-        ByteArrayInputStream byteArrayInputStream = new ByteArrayInputStream(audioData);
-        AudioInputStream audioInputStream = new AudioInputStream(byteArrayInputStream, audioFormat, audioData.length / audioFormat.getFrameSize());
+        if (byteArrayOutputStream != null) {
 
-        try {
+            byte audioData[] = byteArrayOutputStream.toByteArray();
+            AudioFormat audioFormat = getAudioFormat();
+            ByteArrayInputStream byteArrayInputStream = new ByteArrayInputStream(audioData);
+            AudioInputStream audioInputStream = new AudioInputStream(byteArrayInputStream, audioFormat, audioData.length / audioFormat.getFrameSize());
+            try {
 
-            DataLine.Info dataLineInfo = new DataLine.Info(SourceDataLine.class, audioFormat);
-            SourceDataLine sourceDataLine = (SourceDataLine) AudioSystem.getLine(dataLineInfo);
-            sourceDataLine.open(audioFormat);
-            sourceDataLine.start();
+                playWave(audioFormat, audioInputStream);
+            } catch (Exception e) {
+                throw new RuntimeException(e);
+            } finally {
+                safeClose(byteArrayInputStream);
+                safeClose(byteArrayOutputStream);
+            }
+        }
 
-            play_stop_flag = false;
-            new Thread(new Play(audioInputStream, sourceDataLine)).start();
-        } catch (Exception e) {
-            throw new RuntimeException(e);
-        } finally {
-            safeClose(byteArrayInputStream);
-            safeClose(byteArrayOutputStream);
+        if (waves != null && waves.length > 0) {
+
+            try {
+                for (int i = 0; i < waves.length; i++) {
+
+                    AudioInputStream audioInputStream = AudioSystem.getAudioInputStream(waves[i]);
+                    playWave(audioInputStream.getFormat(), audioInputStream);
+                }
+            } catch (Exception e) {
+                throw new RuntimeException(e);
+            }
         }
     }
 
-    private void save(ByteArrayOutputStream byteArrayOutputStream) {
+    private void playWave(AudioFormat audioFormat, AudioInputStream audioInputStream) throws LineUnavailableException, IOException {
 
-        if (byteArrayOutputStream == null) return;
+        DataLine.Info dataLineInfo = new DataLine.Info(SourceDataLine.class, audioFormat);
+        SourceDataLine sourceDataLine = (SourceDataLine) AudioSystem.getLine(dataLineInfo);
+        sourceDataLine.open(audioFormat);
+        sourceDataLine.start();
+
+        try {
+            int cnt;
+            play_stop_flag = false;
+            byte[] bts = new byte[BUF_SIZE];
+            while ((cnt = audioInputStream.read(bts)) != -1) {
+                if (cnt > 0) {
+                    sourceDataLine.write(bts, 0, cnt);
+                }
+                if (play_stop_flag) {
+                    break;
+                }
+            }
+            play_stop_flag = true;
+        } finally {
+            safeClose(audioInputStream);
+            safeCloseDataLine(sourceDataLine);
+        }
+    }
+
+    private String save(ByteArrayOutputStream byteArrayOutputStream) {
+
+        if (byteArrayOutputStream == null) return null;
         byte audioData[] = byteArrayOutputStream.toByteArray();
         AudioFormat audioFormat = getAudioFormat();
         ByteArrayInputStream byteArrayInputStream = new ByteArrayInputStream(audioData);
         AudioInputStream audioInputStream = new AudioInputStream(byteArrayInputStream, audioFormat, audioData.length / audioFormat.getFrameSize());
         try {
 
-            AudioSystem.write(audioInputStream, AudioFileFormat.Type.WAVE, new File(createSaveFilePath()));
+            String filePath = createSaveFilePath();
+            AudioSystem.write(audioInputStream, AudioFileFormat.Type.WAVE, new File(filePath));
+            return filePath;
         } catch (Exception e) {
             throw new RuntimeException(e);
         } finally {
@@ -175,71 +241,5 @@ public abstract class Record4Java implements LineListener {
         }
 
         return filePath.getPath() + "/" + System.currentTimeMillis() + ".wav";
-    }
-
-    private class Record implements Runnable {
-
-        private TargetDataLine targetDataLine;
-        private ByteArrayOutputStream byteArrayOutputStream;
-
-        public Record(TargetDataLine targetDataLine, ByteArrayOutputStream byteArrayOutputStream) {
-            this.targetDataLine = targetDataLine;
-            this.byteArrayOutputStream = byteArrayOutputStream;
-        }
-
-        public void run() {
-            targetDataLine.addLineListener(Record4Java.this);
-            try {
-
-                byte[] bts = new byte[Record4Java.BUF_SIZE];
-                while (true) {
-                    int cnt = targetDataLine.read(bts, 0, bts.length);
-                    if (cnt > 0) {
-                        byteArrayOutputStream.write(bts, 0, cnt);
-                    }
-                    if (record_stop_flag) {
-                        break;
-                    }
-                }
-            } catch (Exception e) {
-                throw new RuntimeException(e);
-            } finally {
-                safeClose(byteArrayOutputStream);
-                targetDataLine.removeLineListener(Record4Java.this);
-                safeCloseDataLine(targetDataLine);
-            }
-        }
-    }
-
-    private class Play implements Runnable {
-
-        private AudioInputStream audioInputStream;
-        private SourceDataLine sourceDataLine;
-
-        public Play(AudioInputStream audioInputStream, SourceDataLine sourceDataLine) {
-            this.audioInputStream = audioInputStream;
-            this.sourceDataLine = sourceDataLine;
-        }
-
-        public void run() {
-            try {
-
-                int cnt;
-                byte[] bts = new byte[Record4Java.BUF_SIZE];
-                while ((cnt = audioInputStream.read(bts)) != -1) {
-                    if (cnt > 0) {
-                        sourceDataLine.write(bts, 0, cnt);
-                    }
-                    if (play_stop_flag) {
-                        break;
-                    }
-                }
-            } catch (Exception e) {
-                throw new RuntimeException(e);
-            } finally {
-                safeClose(audioInputStream);
-                safeCloseDataLine(sourceDataLine);
-            }
-        }
     }
 }
