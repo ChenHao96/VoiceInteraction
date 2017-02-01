@@ -18,6 +18,9 @@ import (
 const (
 	API_Key = "ZC2NNfFUkg8rxgmVkfBC6ycX"
 	Secret_Key = "9a98e53b2ef7339bf03793f0b53fc7e4"
+
+	playCommand = "play"
+	recordCommand = "arecord"
 )
 
 func checkFile(resourcePath, playFile, recordFile string) (string, string) {
@@ -93,7 +96,7 @@ func recordSound(voiceUtil yuyin.API_Util, recordFile string) []string {
 		-d 录音时间(单位；秒)
 		arecord的操作可以查看：http://blog.chinaunix.net/uid-29616823-id-4761787.html
 	*/
-	record := exec.Command("arecord", "-r", "16000", "-t", "wav", "-c", "1", "-f", "S16_LE", recordFile)
+	record := exec.Command(recordCommand, "-r", "16000", "-t", "wav", "-c", "1", "-f", "S16_LE", recordFile)
 	go func() {
 		fmt.Println("->回车结束录音")
 		time.Sleep(200 * time.Millisecond)
@@ -124,7 +127,7 @@ func playAnswer(ttsUtil tts.API_Util, playFile, answer string) {
 		sudo apt-get install sox libsox-fmt-all
 	*/
 	ttsUtil.Text2AudioFile(playFile, answer)
-	play := exec.Command("play", playFile)
+	play := exec.Command(playCommand, playFile)
 	if err := play.Run(); nil != err {
 		fmt.Println(err)
 	}
